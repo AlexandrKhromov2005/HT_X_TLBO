@@ -1,7 +1,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#include "stb_image.h"
+#include "lib/stb_image_write.h"
+#include "lib/stb_image.h"
 #include "image_processing.hpp"
 #include <vector>
 #include <iostream>
@@ -14,6 +14,8 @@ std::vector<unsigned char> Image::import_image(const std::string& filepath){
 
     // Освобождаем память, выделенную stb_image
     stbi_image_free(data);
+
+    this->image_vec = image_vec;
 
     return image_vec;
 }
@@ -53,6 +55,10 @@ int main(){
 
     goida.pix_vec_to_layers();   
     goida.layers_to_pix_vec();
+
+    std::cout << "len of pix vec " << goida.image_vec.size() << "\n";
+    std::cout << "len of lay vec " << goida.r_lay.size() << "\n";
+
 
     goida.export_image("new_goida.png");
 }
