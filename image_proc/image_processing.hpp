@@ -3,7 +3,7 @@
 #include <vector>
 
 class Image {
-    protected:
+    public:
         std::vector<unsigned char> image_vec;
         
         std::vector<unsigned char> r_lay;
@@ -20,12 +20,11 @@ class Image {
 
         void pix_vec_to_layers();
         void layers_to_pix_vec();
-        
-    public:
+
         std::vector<unsigned char> hadamard_trans();
         std::vector<int> md5_coordinate_generation();
         std::vector<unsigned char> lay_to_block();
         std::vector<unsigned char> embed_wm();
-        std::vector<unsigned char> read_wm();
+        std::vector<unsigned char>read_wm();
 };
 #endif // IMAGE_PROCESSING_HPP
