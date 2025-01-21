@@ -79,3 +79,91 @@ WM::~WM() {
     threadGLay.join();
     threadBLay.join();
 }
+
+void WM::AffineTransformation() {
+    auto transformLayer = [this](std::vector<unsigned char>& layer) {
+        std::vector<unsigned char> new_layer;
+        new_layer.resize(layer.size());
+
+        for (size_t i = 0; i < layer.size(); ++i) {
+            size_t x = i % width;
+            size_t y = i / width;
+            size_t new_x = (a_key[0] * x + a_key[1] * y + a_key[4]) % width;
+            size_t new_y = (a_key[2] * x + a_key[3] * y + a_key[5]) % height;
+            size_t new_index = new_x + new_y * width;  
+            
+            if (new_index < new_layer.size()) {
+                new_layer[new_index] = layer[i];
+            }
+        }
+        
+        layer = std::move(new_layer);
+    };
+
+    std::thread threadR(transformLayer, std::ref(r_lay));
+    std::thread threadG(transformLayer, std::ref(g_lay));
+    std::thread threadB(transformLayer, std::ref(b_lay));
+
+    threadR.join();
+    threadG.join();
+    threadB.join();
+}
+
+
+void WM::revAffineTransformation() {
+    auto inverseTransformLayer = [this](std::vector<unsigned char>& layer) {
+        std::vector<unsigned char> original_layer;
+        original_layer.resize(layer.size());
+
+        int det = (a_key[0] * a_key[3] - a_key[1] * a_key[2]) % width;
+        if (det == 0) {
+            throw std::runtime_error("Matrix is not invertible");
+        }
+
+        int det_inv = -1;
+        for (int i = 1; i < width; ++i) {
+            if ((det * i) % width == 1) {
+                det_inv = i;
+                break;
+            }
+        }
+        if (det_inv == -1) {
+            throw std::runtime_error("Determinant has no inverse modulo width");
+        }
+
+        int inv_a0 = (a_key[3] * det_inv) % width;
+        int inv_a1 = (-a_key[1] * det_inv) % width;
+        int inv_a2 = (-a_key[2] * det_inv) % width;
+        int inv_a3 = (a_key[0] * det_inv) % width;
+
+        for (size_t new_index = 0; new_index < layer.size(); ++new_index) {
+            size_t new_x = new_index % width;
+            size_t new_y = new_index / width;
+
+            int adjusted_x = (new_x - a_key[4]) % width;
+            int adjusted_y = (new_y - a_key[5]) % height;
+
+            int x = (inv_a0 * adjusted_x + inv_a1 * adjusted_y) % width;
+            int y = (inv_a2 * adjusted_x + inv_a3 * adjusted_y) % height;
+
+            if (x < 0) x += width;
+            if (y < 0) y += height;
+
+            size_t original_index = x + y * width;
+
+            if (original_index < original_layer.size()) {
+                original_layer[original_index] = layer[new_index];
+            }
+        }
+
+        layer = std::move(original_layer);
+    };
+
+    std::thread threadR(inverseTransformLayer, std::ref(r_lay));
+    std::thread threadG(inverseTransformLayer, std::ref(g_lay));
+    std::thread threadB(inverseTransformLayer, std::ref(b_lay));
+
+    threadR.join();
+    threadG.join();
+    threadB.join();
+}
