@@ -42,3 +42,40 @@ void WM::revPOB() {
     threadGLay.join();
     threadBLay.join();
 }
+
+WM::WM() {
+    RLay.resize(r_lay.size());
+    GLay.resize(g_lay.size());
+    BLay.resize(b_lay.size());
+
+    auto processLayer = [](const std::vector<unsigned char>& layer, std::vector<WMPixel>& targetLayer) {
+        for (size_t i = 0; i < layer.size(); ++i) {
+            targetLayer[i].lowBits = layer[i] & 0b00001111;          
+            targetLayer[i].highBits = (layer[i] & 0b11110000) >> 4; 
+        }
+    };
+
+    std::thread threadRLay(processLayer, std::ref(r_lay), std::ref(RLay));
+    std::thread threadGLay(processLayer, std::ref(g_lay), std::ref(GLay));
+    std::thread threadBLay(processLayer, std::ref(b_lay), std::ref(BLay));
+
+    threadRLay.join();
+    threadGLay.join();
+    threadBLay.join();
+}
+
+WM::~WM() {
+    auto mergeLayer = [](const std::vector<WMPixel>& sourceLayer, std::vector<unsigned char>& targetLayer) {
+        for (size_t i = 0; i < sourceLayer.size(); ++i) {
+            targetLayer[i] = (sourceLayer[i].highBits << 4) | (sourceLayer[i].lowBits & 0b00001111);
+        }
+    };
+
+    std::thread threadRLay(mergeLayer, std::ref(RLay), std::ref(r_lay));
+    std::thread threadGLay(mergeLayer, std::ref(GLay), std::ref(g_lay));
+    std::thread threadBLay(mergeLayer, std::ref(BLay), std::ref(b_lay));
+
+    threadRLay.join();
+    threadGLay.join();
+    threadBLay.join();
+}
