@@ -83,6 +83,44 @@ void Image::lay_to_blocks() {
     thread_b.join();
 }
 
+void Image::blocks_to_lay() {
+    r_lay.clear();
+    g_lay.clear();
+    b_lay.clear();
+    
+    const size_t total_pixels = width * height;
+    r_lay.resize(total_pixels);
+    g_lay.resize(total_pixels);
+    b_lay.resize(total_pixels);
+
+    const size_t blocks_per_row = width / 4;
+    const size_t blocks_per_col = height / 4;
+
+    auto process_blocks_to_channel = [&](
+        const std::vector<Block>& channel_blocks,
+        std::vector<unsigned char>& channel
+    ) {
+        for (size_t block_idx = 0; block_idx < channel_blocks.size(); ++block_idx) {
+            const size_t block_y = block_idx / blocks_per_row;
+            const size_t block_x = block_idx % blocks_per_row;
+
+            for (size_t y_in_block = 0; y_in_block < 4; ++y_in_block) {
+                for (size_t x_in_block = 0; x_in_block < 4; ++x_in_block) {
+                    const size_t x_global = block_x * 4 + x_in_block;
+                    const size_t y_global = block_y * 4 + y_in_block;
+                    
+                    const size_t pixel_idx = y_global * width + x_global;
+
+                    channel[pixel_idx] = channel_blocks[block_idx][y_in_block][x_in_block];
+                }
+            }
+        }
+    };
+
+    process_blocks_to_channel(r_lay_blocks, r_lay);
+    process_blocks_to_channel(g_lay_blocks, g_lay);
+    process_blocks_to_channel(b_lay_blocks, b_lay);
+}
 /*int main(){
     Image goida;
     

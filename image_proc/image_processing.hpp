@@ -40,6 +40,7 @@ public:
     std::vector<unsigned char> embed_wm();
     std::vector<unsigned char>read_wm();
     void lay_to_blocks();
+    void blocks_to_lay();
 
 private:
     void process_channel_to_blocks(
