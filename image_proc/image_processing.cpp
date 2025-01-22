@@ -1,10 +1,4 @@
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "lib/stb_image_write.h"
-#include "lib/stb_image.h"
 #include "image_processing.hpp"
-#include <vector>
-#include <iostream>
 
 std::vector<unsigned char> Image::import_image(const std::string& filepath){
     unsigned char* data = stbi_load(filepath.c_str(), &this->width, &this->height, &this->channels, 0);
@@ -48,7 +42,48 @@ void Image::layers_to_pix_vec(){
     }
 }
 
-int main(){
+void Image::process_channel_to_blocks(
+    const std::vector<unsigned char>& channel,
+    std::vector<Block>& channel_blocks
+) {
+    const size_t blocks_x = width / 4;
+    const size_t blocks_y = height / 4;
+    const size_t total_blocks = blocks_x * blocks_y;
+
+    channel_blocks.resize(total_blocks);
+
+    for (size_t i = 0; i < channel.size(); ++i) {
+        size_t x_global = i % width;
+        size_t y_global = i / width;
+        size_t x_in_block = x_global % 4;
+        size_t y_in_block = y_global % 4;
+        size_t block_x = x_global / 4;
+        size_t block_y = y_global / 4;
+        size_t n = block_y * blocks_x + block_x;
+
+        channel_blocks[n][y_in_block][x_in_block] = channel[i];
+    }
+}
+
+void Image::lay_to_blocks() {
+    std::thread thread_r([this]() { 
+        process_channel_to_blocks(r_lay, r_lay_blocks); 
+    });
+    
+    std::thread thread_g([this]() { 
+        process_channel_to_blocks(g_lay, g_lay_blocks); 
+    });
+    
+    std::thread thread_b([this]() { 
+        process_channel_to_blocks(b_lay, b_lay_blocks); 
+    });
+
+    thread_r.join();
+    thread_g.join();
+    thread_b.join();
+}
+
+/*int main(){
     Image goida;
     
     goida.import_image("goida.png");
@@ -61,4 +96,4 @@ int main(){
 
 
     goida.export_image("new_goida.png");
-}
+}*/
