@@ -6,7 +6,7 @@
 #include <thread>
 #include <utility>
 #include <stdexcept>
-#include "image_proc/image_processing.hpp"
+#include "image_src/image_processing.hpp"
 
 constexpr unsigned char R_LUT[16] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
 constexpr unsigned char LOW_BITS_LUT[16] = {0, 1, 2, 0, 3, 1, 2, 0, 4, 3, 4, 1, 5, 2, 3, 0};
