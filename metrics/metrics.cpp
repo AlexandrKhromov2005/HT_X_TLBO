@@ -73,3 +73,33 @@ double image_psnr(const Image& original, const Image& distorted) {
         ? std::numeric_limits<double>::infinity()
         : 10.0 * std::log10(65025.0 / mse); 
 }
+
+double channel_nc(const std::vector<unsigned char>& orig, const std::vector<unsigned char>& extr) {
+    double sum_prod = 0.0;
+    double sum_sq_orig = 0.0;
+    double sum_sq_extr = 0.0;
+
+    #pragma omp parallel for reduction(+:sum_prod, sum_sq_orig, sum_sq_extr)
+    for (size_t i = 0; i < orig.size(); ++i) {
+        const double o = orig[i];
+        const double e = extr[i];
+        
+        sum_prod += o * e;
+        sum_sq_orig += o * o;
+        sum_sq_extr += e * e;
+    }
+
+    const double denominator = sqrt(sum_sq_orig * sum_sq_extr);
+    return (denominator > 1e-9) ? (sum_prod / denominator) : 0.0;
+}
+
+double image_nc(const WM& original_wm, const WM& extracted_wm) {
+    auto future_r = std::async(std::launch::async, channel_nc, 
+                             std::ref(original_wm.r_lay), std::ref(extracted_wm.r_lay));
+    auto future_g = std::async(std::launch::async, channel_nc,
+                             std::ref(original_wm.g_lay), std::ref(extracted_wm.g_lay));
+    auto future_b = std::async(std::launch::async, channel_nc,
+                             std::ref(original_wm.b_lay), std::ref(extracted_wm.b_lay));
+
+    return (future_r.get() + future_g.get() + future_b.get()) / 3.0;
+}
