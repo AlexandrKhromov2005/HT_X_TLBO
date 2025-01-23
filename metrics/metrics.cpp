@@ -1,9 +1,8 @@
 #include "metrics.hpp"
-#include <omp.h>
 
-double image_mse(const std::vector<unsigned char>& old_img, const std::vector<unsigned char>& new_img) {
+double channel_mse(const std::vector<unsigned char>& old_img, const std::vector<unsigned char>& new_img) {
     const size_t total_pixels = old_img.size();
-    const size_t simd_step = 32; 
+    const size_t simd_step = 32;
     __m256d sum = _mm256_setzero_pd();
     size_t i = 0;
 
@@ -13,7 +12,7 @@ double image_mse(const std::vector<unsigned char>& old_img, const std::vector<un
         __m256i old_data = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&old_img[i]));
         __m256i new_data = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&new_img[i]));
 
-        // Разность пикселей
+        // Вычисление разности
         __m256i diff = _mm256_sub_epi8(old_data, new_data);
 
         // Возведение в квадрат (8-бит -> 16-бит)
@@ -24,14 +23,13 @@ double image_mse(const std::vector<unsigned char>& old_img, const std::vector<un
         __m128i square_high = _mm256_extracti128_si256(square, 1);
 
         // Конвертация 16-бит -> 32-бит
-        __m128i square_low_32 = _mm_cvtepi16_epi32(square_low);  
+        __m128i square_low_32 = _mm_cvtepi16_epi32(square_low);
         __m128i square_high_32 = _mm_cvtepi16_epi32(square_high);
 
-        // Конвертация 32-битных int -> double
+        // Конвертация в double и суммирование
         __m256d square_low_dbl = _mm256_cvtepi32_pd(square_low_32);
         __m256d square_high_dbl = _mm256_cvtepi32_pd(square_high_32);
 
-        // Суммирование
         sum = _mm256_add_pd(sum, square_low_dbl);
         sum = _mm256_add_pd(sum, square_high_dbl);
     }
@@ -43,21 +41,35 @@ double image_mse(const std::vector<unsigned char>& old_img, const std::vector<un
         tail_sum += diff * diff;
     }
 
-    // Суммирование всех компонент
+    // Суммирование результатов
     double tmp[4];
     _mm256_storeu_pd(tmp, sum);
-    double total = tmp[0] + tmp[1] + tmp[2] + tmp[3] + tail_sum;
-
-    return total / total_pixels;
+    return (tmp[0] + tmp[1] + tmp[2] + tmp[3] + tail_sum) / total_pixels;
 }
 
-inline double image_psnr(const std::vector<unsigned char>& old_img, const std::vector<unsigned char>& new_img) {
-    const double mse = image_mse(old_img, new_img);
-    
-    if (mse <= 0.0) {
-        return std::numeric_limits<double>::infinity(); // Бесконечность, если изображения идентичны
-    }
-    
-    constexpr double max_pixel_value = 255.0;
-    return 10.0 * std::log10((max_pixel_value * max_pixel_value) / mse);
+double image_mse(const Image& original, const Image& distorted) {
+    // Устанавливаем количество потоков для OpenMP внутри channel_mse_optimized
+    omp_set_num_threads(2); // 2 потока на канал
+
+    // Запускаем асинхронные задачи для каждого канала
+    auto future_r = std::async(std::launch::async, channel_mse, 
+                              std::ref(original.r_lay), std::ref(distorted.r_lay));
+    auto future_g = std::async(std::launch::async, channel_mse, 
+                              std::ref(original.g_lay), std::ref(distorted.g_lay));
+    auto future_b = std::async(std::launch::async, channel_mse, 
+                              std::ref(original.b_lay), std::ref(distorted.b_lay));
+
+    // Дожидаемся результатов и усредняем
+    const double mse_r = future_r.get();
+    const double mse_g = future_g.get();
+    const double mse_b = future_b.get();
+
+    return (mse_r + mse_g + mse_b) / 3.0;
+}
+
+double image_psnr(const Image& original, const Image& distorted) {
+    const double mse = image_mse(original, distorted);
+    return (mse <= 0.0) 
+        ? std::numeric_limits<double>::infinity()
+        : 10.0 * std::log10(65025.0 / mse); 
 }

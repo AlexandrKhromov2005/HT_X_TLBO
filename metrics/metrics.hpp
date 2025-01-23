@@ -5,9 +5,11 @@
 #include <cmath>
 #include <limits>
 #include <immintrin.h>  // Для AVX2
+#include "image_src/image_processing.hpp"
+#include <omp.h>
+#include <future>
 
-// Оптимизированная версия с SIMD и OpenMP
-double image_mse(const std::vector<unsigned char>& old_img, const std::vector<unsigned char>& new_img);
-inline double image_psnr(const std::vector<unsigned char>& old_img, const std::vector<unsigned char>& new_img);
+double image_mse(const Image& original, const Image& distorted);
+double image_psnr(const Image& original, const Image& distorted);
 
 #endif // METRICS_HPP
