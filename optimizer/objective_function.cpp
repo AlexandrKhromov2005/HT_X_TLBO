@@ -25,7 +25,6 @@ double Optimizer::calculateObjectiveFunction() {
             double nc_j = image_nc(pack.src_wm, extracted_wm);
             double ber_j = image_ber(pack.src_wm, extracted_wm);
 
-            // Вклад j-й атаки
             sum_attacks += pack.attack_weights[j] * nc_j * (1 - ber_j);
         }
 
