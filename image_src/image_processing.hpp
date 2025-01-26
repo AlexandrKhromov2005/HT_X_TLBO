@@ -17,7 +17,7 @@ public:
     std::vector<unsigned char> r_lay;
     std::vector<unsigned char> g_lay;
     std::vector<unsigned char> b_lay;
-        
+    
     std::vector<Block> r_lay_blocks;
     std::vector<Block> g_lay_blocks;
     std::vector<Block> b_lay_blocks;
@@ -53,7 +53,6 @@ public:
     void blocks_to_lay();
 
     std::array<std::array<double, 4>, 4> multiply_matrices(const std::array<std::array<double, 4>, 4>& matrix1, const std::array<std::array<double, 4>, 4>& matrix2);
-
 
 private:
     void process_channel_to_blocks(
