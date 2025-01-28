@@ -190,3 +190,7 @@ void ImageDestroyer::subsampling(){
     }
 }
 
+// jpeg атаки с quality factor 70 80 90
+void ImageDestroyer::jpeg_attack(const int qf){
+
+}
